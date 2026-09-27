@@ -1,0 +1,140 @@
+/* ==========================================================================
+   LEISURESCROLL CSS CORE — v3 (data-ls / ls- / --ls-* naming)
+   ========================================================================== */
+
+:root {
+  --ls-duration: 0.8s;
+  --ls-delay: 0s;
+  --ls-easing: cubic-bezier(0.25, 1, 0.5, 1);
+  --ls-distance: 40px;
+  --ls-scale: 0.85;
+}
+
+/* Base styles for all animated elements */
+[data-ls] {
+  will-change: transform, opacity; /* removed after settling in JS fallback; kept
+                                        permanently in the native path since scroll-timeline
+                                        can re-trigger on scroll-back at any time */
+  animation-fill-mode: both;
+  animation-timing-function: var(--ls-easing);
+  animation-duration: var(--ls-duration);
+  animation-delay: var(--ls-delay);
+}
+
+/* --------------------------------------------------------------------------
+   1. NATIVE CSS SCROLL TIMELINE (Chrome/Edge 115+ — Firefox/Safari: not yet,
+      "Limited availability" per MDN as of today — 0KB JS overhead there)
+   -------------------------------------------------------------------------- */
+@supports (animation-timeline: view()) {
+  [data-ls] {
+    animation-timeline: view();
+    /* Starts 10% into the entry phase, finishes 35% into the cover phase —
+       i.e. the reveal is done well before the element reaches screen center. */
+    animation-range: entry 10% cover 35%;
+  }
+
+  [data-ls="fade"]            { animation-name: ls-fade; }
+  [data-ls="fade-up"]         { animation-name: ls-fade-up; }
+  [data-ls="fade-down"]       { animation-name: ls-fade-down; }
+  [data-ls="fade-left"]       { animation-name: ls-fade-left; }
+  [data-ls="fade-right"]      { animation-name: ls-fade-right; }
+  [data-ls="fade-up-right"]   { animation-name: ls-fade-up-right; }
+  [data-ls="fade-up-left"]    { animation-name: ls-fade-up-left; }
+  [data-ls="fade-down-right"] { animation-name: ls-fade-down-right; }
+  [data-ls="fade-down-left"]  { animation-name: ls-fade-down-left; }
+  [data-ls="zoom-in"]         { animation-name: ls-zoom-in; }
+  [data-ls="zoom-out"]        { animation-name: ls-zoom-out; }
+
+  /* NOTE: scroll-driven animations have no native "once" concept — progress
+     is tied directly to scroll position, so elements mirror back out when
+     scrolled past in reverse. The IO fallback below defaults to once=true.
+     This is an intentional/unavoidable behavior difference between the two
+     paths unless the native path is also routed through JS. */
+}
+
+/* --------------------------------------------------------------------------
+   2. FALLBACK FOR OLDER BROWSERS (driven by IntersectionObserver)
+   -------------------------------------------------------------------------- */
+@supports not (animation-timeline: view()) {
+  [data-ls] {
+    opacity: 0;
+    transition-property: transform, opacity;
+    transition-duration: var(--ls-duration);
+    transition-delay: var(--ls-delay);
+    transition-timing-function: var(--ls-easing);
+  }
+
+  [data-ls="fade-up"]         { transform: translateY(var(--ls-distance)); }
+  [data-ls="fade-down"]       { transform: translateY(calc(var(--ls-distance) * -1)); }
+  [data-ls="fade-left"]       { transform: translateX(var(--ls-distance)); }
+  [data-ls="fade-right"]      { transform: translateX(calc(var(--ls-distance) * -1)); }
+  [data-ls="fade-up-right"]   { transform: translate(calc(var(--ls-distance) * -1), var(--ls-distance)); }
+  [data-ls="fade-up-left"]    { transform: translate(var(--ls-distance), var(--ls-distance)); }
+  [data-ls="fade-down-right"] { transform: translate(calc(var(--ls-distance) * -1), calc(var(--ls-distance) * -1)); }
+  [data-ls="fade-down-left"]  { transform: translate(var(--ls-distance), calc(var(--ls-distance) * -1)); }
+  [data-ls="zoom-in"]         { transform: scale(var(--ls-scale)); }
+  [data-ls="zoom-out"]        { transform: scale(calc(2 - var(--ls-scale))); }
+
+  [data-ls].ls-animated {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+/* ==========================================================================
+   KEYFRAMES (used by native CSS scroll-timeline path only)
+   ========================================================================== */
+@keyframes ls-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes ls-fade-up {
+  from { opacity: 0; transform: translateY(var(--ls-distance)); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ls-fade-down {
+  from { opacity: 0; transform: translateY(calc(var(--ls-distance) * -1)); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ls-fade-left {
+  from { opacity: 0; transform: translateX(var(--ls-distance)); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes ls-fade-right {
+  from { opacity: 0; transform: translateX(calc(var(--ls-distance) * -1)); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes ls-fade-up-right {
+  from { opacity: 0; transform: translate(calc(var(--ls-distance) * -1), var(--ls-distance)); }
+  to   { opacity: 1; transform: translate(0, 0); }
+}
+@keyframes ls-fade-up-left {
+  from { opacity: 0; transform: translate(var(--ls-distance), var(--ls-distance)); }
+  to   { opacity: 1; transform: translate(0, 0); }
+}
+@keyframes ls-fade-down-right {
+  from { opacity: 0; transform: translate(calc(var(--ls-distance) * -1), calc(var(--ls-distance) * -1)); }
+  to   { opacity: 1; transform: translate(0, 0); }
+}
+@keyframes ls-fade-down-left {
+  from { opacity: 0; transform: translate(var(--ls-distance), calc(var(--ls-distance) * -1)); }
+  to   { opacity: 1; transform: translate(0, 0); }
+}
+@keyframes ls-zoom-in {
+  from { opacity: 0; transform: scale(var(--ls-scale)); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes ls-zoom-out {
+  from { opacity: 0; transform: scale(calc(2 - var(--ls-scale))); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Respect OS-level reduced motion in BOTH paths. */
+@media (prefers-reduced-motion: reduce) {
+  [data-ls] {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
