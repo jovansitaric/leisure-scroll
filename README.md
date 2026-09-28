@@ -23,5 +23,53 @@ This is a conscious design choice, not a bug:
 ## Usage
 
 ```html
-<link rel="stylesheet" href="leisurescroll.css">
+<link rel="stylesheet" href="leisurescroll.css" />
 <script src="leisurescroll.js"></script>
+```
+
+```html
+<div data-ls="fade-up">Content</div>
+<div data-ls="zoom-in" style="--ls-duration: 600ms; --ls-delay: 200ms;">
+    Content
+</div>
+<div data-ls="fade-left" data-ls-once="false">
+    Animates every time (fallback path only)
+</div>
+```
+
+There is no JS initialization; everything works automatically as soon as the script loads (on `DOMContentLoaded`, or immediately if the DOM is already ready). The script can go in `<head>`, before `</body>`, or use `defer`; it makes no difference.
+
+### Global settings (CSS custom properties, on `:root` or per element)
+
+| Property        | Default                         | Description                                             |
+| --------------- | ------------------------------- | ------------------------------------------------------- |
+| `--ls-duration` | `0.8s`                          | duration                                                |
+| `--ls-delay`    | `0s`                            | delay                                                   |
+| `--ls-easing`   | `cubic-bezier(0.25, 1, 0.5, 1)` | easing curve                                            |
+| `--ls-distance` | `40px`                          | how far the element travels for fade-up/down/left/right |
+| `--ls-scale`    | `0.85`                          | starting scale for zoom-in/out                          |
+
+Set them globally with `:root { --ls-duration: 1s; }`, or inline per element with `style="--ls-duration: 300ms"`. This works identically on both paths (native and fallback), with no JS involved.
+
+### Available animations (`data-ls="..."`)
+
+`fade`, `fade-up`, `fade-down`, `fade-left`, `fade-right`, `fade-up-right`, `fade-up-left`, `fade-down-right`, `fade-down-left`, `zoom-in`, `zoom-out`
+
+### `data-ls-once`
+
+- (omitted or `"true"`): the default. Animates once on the fallback path; on the native path it still mirrors (see the note above).
+- `"false"`: on the fallback path, it also animates in reverse; no effect on the native path (which always mirrors).
+
+### `window.LeisureScroll.refresh(root?)`
+
+A no-op on the native path (CSS selectors pick up new elements automatically). On the fallback path, call it after dynamically inserting `[data-ls]` elements into the DOM (AJAX, infinite scroll) so the IntersectionObserver starts tracking them. The optional `root` is the container to search for new elements (default: the whole document).
+
+## Performance in brief
+
+- Only `opacity`/`transform` are animated (compositor-only), never layout-triggering properties.
+- `will-change` is removed after the "once" animation on the fallback path (JS, `transitionend`); on the native path it stays permanently, since the element can animate again at any time (scrolling back).
+- `prefers-reduced-motion: reduce` is respected on both paths, in CSS and JS.
+
+## Next step
+
+WordPress plugin: shortcode/block attributes map directly to `data-ls`, `data-ls-once` and the `--ls-*` custom properties.
