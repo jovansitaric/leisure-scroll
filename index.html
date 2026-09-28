@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="LeisureScroll: a hybrid scroll-reveal library. Native CSS scroll-driven animations with an IntersectionObserver fallback.">
+    <title>LeisureScroll — Interactive Showcase & Documentation</title>
+
+    <!-- Apply the saved/system theme before first paint (prevents a light-mode flash for dark users) -->
+    <script>
+        (function () {
+            var theme = null;
+            try { theme = localStorage.getItem('ls_theme'); } catch (e) { /* storage blocked */ }
+            if (theme !== 'dark' && theme !== 'light') {
+                theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- LeisureScroll Library Files -->
+    <link rel="stylesheet" href="leisurescroll.css">
+    <script src="leisurescroll.js" defer></script>
+
+    <!-- Showcase Page UI Stylesheet -->
+    <style>
+        /* -------------------------------------------------------------
+           1. DESIGN TOKENS (light / dark)
+        ------------------------------------------------------------- */
+        :root {
+            --header-h: 72px;
+
+            --bg-gradient-top: #f3f0e9;
+            --bg-gradient-bottom: #a7f3d0;
+
+            --bg-header: rgba(255, 255, 255, 0.25);
+            --bg-card: rgba(255, 255, 255, 0.88);
+            --bg-card-border: rgba(210, 202, 188, 0.6);
+            --bg-code: #f3f0e9;
+            --border-code: rgba(210, 202, 188, 0.8);
+
+            --text-main: #1f2937;
+            --text-muted: #4b5563;
+
+            --accent: #059669;
+            --accent-soft: rgba(16, 185, 129, 0.12);
+            --badge-border: rgba(16, 185, 129, 0.3);
+            --accent-green: #10b981;
+            --accent-green-bright: #34d399;
+
+            --card-shadow: 0 20px 40px -15px rgba(16, 185, 129, 0.12);
+            --card-hover-border: rgba(16, 185, 129, 0.5);
+
+            --code-punct: #64748b;
+            --code-tag: #047857;
+            --code-attr: #6366f1;
+            --code-val: #0284c7;
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient-top: #07090e;
+            --bg-gradient-bottom: #064e3b;
+
+            --bg-header: rgba(7, 9, 14, 0.35);
+            --bg-card: rgba(18, 24, 36, 0.88);
+            --bg-card-border: rgba(255, 255, 255, 0.12);
+            --bg-code: #07090e;
+            --border-code: rgba(255, 255, 255, 0.12);
+
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+
+            --accent: #34d399;
+            --accent-soft: rgba(52, 211, 153, 0.12);
+            --badge-border: rgba(52, 211, 153, 0.25);
+            --accent-green: #10b981;
+            --accent-green-bright: #6ee7b7;
+
+            --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+            --card-hover-border: rgba(52, 211, 153, 0.5);
+
+            --code-punct: #64748b;
+            --code-tag: #34d399;
+            --code-attr: #fbbf24;
+            --code-val: #38bdf8;
+        }
+
+        /* -------------------------------------------------------------
+           2. BASE + ANIMATED GRADIENT BACKGROUND
+        ------------------------------------------------------------- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            background: var(--bg-gradient-top);
+            color-scheme: light;
+            scroll-behavior: smooth;
+            scroll-padding-top: calc(var(--header-h) + 1rem);
+        }
+
+        html[data-theme="dark"] {
+            color-scheme: dark;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Animated background gradient layer */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: -25%;
+            z-index: -1;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 20% 20%, var(--bg-gradient-top) 0%, transparent 60%),
+                radial-gradient(circle at 80% 80%, var(--bg-gradient-bottom) 0%, transparent 70%),
+                linear-gradient(135deg, var(--bg-gradient-top) 20%, var(--bg-gradient-bottom) 100%);
+            animation: bgDrift 28s ease-in-out infinite alternate;
+            will-change: transform;
+        }
+
+        @keyframes bgDrift {
+            from {
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+
+            to {
+                transform: translate3d(6%, -4%, 0) scale(1.08);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            body::before {
+                animation: none;
+            }
+        }
+
+        /* -------------------------------------------------------------
+           3. HEADER (Transparent initially -> Soft frosted glass on scroll)
+        ------------------------------------------------------------- */
+        header {
+            position: sticky;
+            top: 0;
+            height: var(--header-h);
+            background: transparent;
+            border-bottom: 1px solid transparent;
+            box-shadow: none;
+            backdrop-filter: blur(0px);
+            -webkit-backdrop-filter: blur(0px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0 2rem;
+            z-index: 1000;
+            transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease;
+        }
+
+        header.is-scrolled {
+            background: var(--bg-header);
+            border-bottom: 1px solid var(--bg-card-border);
+            box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(16px) saturate(1.4);
+            -webkit-backdrop-filter: blur(16px) saturate(1.4);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 800;
+            font-size: 1.3rem;
+            white-space: nowrap;
+        }
+
+        .brand-tag {
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-green-bright));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            min-width: 0;
+        }
+
+        .engine-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            min-width: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--badge-border);
+            padding: 0.4rem 0.9rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+            backdrop-filter: blur(8px);
+        }
+
+        .engine-badge #engineLabel {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .status-dot {
+            flex: none;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        .theme-toggle-btn {
+            flex: none;
+            background: var(--bg-card);
+            border: 1px solid var(--bg-card-border);
+            color: var(--text-main);
+            padding: 0.45rem 0.85rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            backdrop-filter: blur(8px);
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .theme-toggle-btn:hover {
+            border-color: var(--card-hover-border);
+            transform: translateY(-1px);
+        }
+
+        /* -------------------------------------------------------------
+           4. LAYOUT & CONTAINERS
+        ------------------------------------------------------------- */
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 1.5rem 6rem;
+            overflow-x: clip;
+        }
+
+        .hero {
+            min-height: calc(100vh - var(--header-h));
+            min-height: calc(100svh - var(--header-h));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 0.35rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--badge-border);
+            color: var(--accent);
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(8px);
+        }
+
+        .hero h1 {
+            font-size: clamp(2.6rem, 8vw, 3.8rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 680px;
+        }
+
+        .inline-code {
+            display: inline-block;
+            font-family: 'Fira Code', ui-monospace, monospace;
+            font-size: 0.88em;
+            font-weight: 600;
+            color: var(--accent);
+            background: var(--accent-soft);
+            border: 1px solid var(--badge-border);
+            padding: 0.15rem 0.45rem;
+            border-radius: 6px;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-title .tag {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.7rem;
+            background: var(--accent-soft);
+            color: var(--accent);
+            border: 1px solid var(--badge-border);
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        .section-desc {
+            color: var(--text-muted);
+            margin-bottom: 3rem;
+            font-size: 1.05rem;
+        }
+
+        .demo-section {
+            margin-bottom: 5rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+            gap: 1.75rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(450px, 100%), 1fr));
+            gap: 1.75rem;
+        }
+
+        /* -------------------------------------------------------------
+           5. CARDS & CODEBLOCKS
+        ------------------------------------------------------------- */
+        .card {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--bg-card-border);
+            border-radius: 20px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        .card::after {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border: 1px solid transparent;
+            border-radius: inherit;
+            pointer-events: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .card:hover::after {
+            border-color: var(--card-hover-border);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.4rem;
+        }
+
+        .card-desc {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .chip {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            border: 1px solid var(--border-code);
+            border-radius: 6px;
+            padding: 0.05rem 0.4rem;
+            vertical-align: middle;
+        }
+
+        .snippet {
+            margin-top: auto;
+        }
+
+        .code-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.45rem;
+        }
+
+        .code-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .copy-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-code);
+            border-radius: 8px;
+            padding: 0.35rem 0.65rem;
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            line-height: 1;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent-soft);
+            border-color: var(--badge-border);
+            color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border-code);
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+            font-family: 'Fira Code', ui-monospace, monospace;
+            font-size: 0.82rem;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .code-block code {
+            font: inherit;
+        }
+
+        .code-block::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .code-block::-webkit-scrollbar-thumb {
+            background: var(--border-code);
+            border-radius: 4px;
+        }
+
+        .code-block .p {
+            color: var(--code-punct);
+        }
+
+        .code-block .t {
+            color: var(--code-tag);
+            font-weight: 700;
+        }
+
+        .code-block .a {
+            color: var(--code-attr);
+            font-weight: 600;
+        }
+
+        .code-block .v {
+            color: var(--code-val);
+        }
+
+        /* Dynamic section */
+        #dynamic-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent-green), var(--accent));
+            color: #fff;
+            border: none;
+            padding: 0.9rem 1.8rem;
+            border-radius: 12px;
+            font: inherit;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px -5px rgba(16, 185, 129, 0.6);
+        }
+
+        /* -------------------------------------------------------------
+           6. FOOTER (Clean standard frosted glass footer)
+        ------------------------------------------------------------- */
+        footer {
+            border-top: 1px solid var(--bg-card-border);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 5rem 1.5rem 3.5rem;
+            text-align: center;
+        }
+
+        .footer-container {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.75rem;
+        }
+
+        .footer-brand {
+            font-size: 1.6rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .footer-text {
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            max-width: 580px;
+        }
+
+        .footer-features {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem 1.25rem;
+        }
+
+        .footer-feature-item {
+            font-size: 0.9rem;
+            font-weight: 600;
+            background: var(--bg-card);
+            border: 1px solid var(--badge-border);
+            padding: 0.4rem 0.9rem;
+            border-radius: 9999px;
+            backdrop-filter: blur(8px);
+        }
+
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.75rem 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .footer-links a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-copyright {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--bg-card-border);
+            padding-top: 1.5rem;
+            width: 100%;
+        }
+
+        /* -------------------------------------------------------------
+           7. SMALL SCREENS
+        ------------------------------------------------------------- */
+        @media (max-width: 640px) {
+            header {
+                padding: 0 1rem;
+                gap: 0.5rem;
+            }
+
+            .brand {
+                font-size: 1.1rem;
+            }
+
+            .header-actions {
+                gap: 0.5rem;
+            }
+
+            .engine-badge {
+                font-size: 0.75rem;
+                padding: 0.35rem 0.65rem;
+            }
+
+            #themeLabel {
+                display: none;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR (Sticky header with dynamic scroll glassmorphism) -->
+    <header id="siteHeader">
+        <div class="brand">
+            <span>Leisure<span class="brand-tag">Scroll</span></span>
+        </div>
+
+        <div class="header-actions">
+            <div class="engine-badge" id="engineBadge">
+                <div class="status-dot"></div>
+                <span id="engineLabel">Detecting engine…</span>
+            </div>
+
+            <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle theme">
+                <span id="themeIcon" aria-hidden="true">🌙</span>
+                <span id="themeLabel">Dark</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- HERO SECTION -->
+        <section class="hero" id="hero">
+            <div data-ls="fade-down" class="hero-badge">Zero config • 0 KB JS on supporting browsers</div>
+            <h1 data-ls="fade-up">LeisureScroll</h1>
+            <p data-ls="fade-up" style="--ls-delay: 150ms;">
+                A high-performance hybrid scroll-reveal library. Uses native CSS scroll timelines when the browser
+                supports them, with an instant IntersectionObserver fallback.
+            </p>
+        </section>
+
+        <!-- 1. FADE ANIMATIONS -->
+        <section class="demo-section">
+            <h2 class="section-title">Fade Animations <span class="tag" data-variants>9 Variants</span></h2>
+            <p class="section-desc">Opacity transitions combined with directional translation offsets.</p>
+
+            <div class="grid-3">
+                <div class="card" data-ls="fade">
+                    <div class="card-header">
+                        <h3 class="card-title">Fade</h3>
+                        <p class="card-desc">Pure opacity reveal without position shift.</p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="fade-up">
+                    <div class="card-header">
+                        <h3 class="card-title">Fade Up</h3>
+                        <p class="card-desc">Translates upward while fading in.</p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="fade-down">
+                    <div class="card-header">
+                        <h3 class="card-title">Fade Down</h3>
+                        <p class="card-desc">Translates downward while fading in.</p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="fade-left">
+                    <div class="card-header">
+                        <h3 class="card-title">Fade Left</h3>
+                        <p class="card-desc">Translates from right to left into position.</p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="fade-right">
+                    <div class="card-header">
+                        <h3 class="card-title">Fade Right</h3>
+                        <p class="card-desc">Translates from left to right into position.</p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="fade-up-right">
+                    <div class="card-header">
+                        <h3 class="card-title">Fade Up Right</h3>
+                        <p class="card-desc">Diagonal reveal from bottom-left.</p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="fade-up-left">
+                    <div class="card-header">
+                        <h3 class="card-title">Fade Up Left</h3>
+                        <p class="card-desc">Diagonal reveal from bottom-right.</p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="fade-down-right">
+                    <div class="card-header">
+                        <h3 class="card-title">Fade Down Right</h3>
+                        <p class="card-desc">Diagonal reveal from top-left.</p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="fade-down-left">
+                    <div class="card-header">
+                        <h3 class="card-title">Fade Down Left</h3>
+                        <p class="card-desc">Diagonal reveal from top-right.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. ZOOM ANIMATIONS -->
+        <section class="demo-section">
+            <h2 class="section-title">Zoom Animations <span class="tag" data-variants>2 Variants</span></h2>
+            <p class="section-desc">Scale transitions combined with opacity reveals.</p>
+
+            <div class="grid-2">
+                <div class="card" data-ls="zoom-in">
+                    <div class="card-header">
+                        <h3 class="card-title">Zoom In</h3>
+                        <p class="card-desc">Scales up from a smaller initial state.</p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="zoom-out">
+                    <div class="card-header">
+                        <h3 class="card-title">Zoom Out</h3>
+                        <p class="card-desc">Scales down from a larger initial state.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. ANIMATION OFFSET / DISTANCE -->
+        <section class="demo-section">
+            <h2 class="section-title">Animation Offset <span class="tag">Custom Distance</span></h2>
+            <p class="section-desc">Customize how far elements travel during reveal animations using
+                <span class="inline-code">--ls-distance</span>.
+            </p>
+
+            <div class="grid-2">
+                <div class="card" data-ls="fade-up" style="--ls-distance: 60px;">
+                    <div class="card-header">
+                        <h3 class="card-title">Standard Offset</h3>
+                        <p class="card-desc">Subtle translation for clean, modern interface elements.</p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="fade-up" style="--ls-distance: 160px;">
+                    <div class="card-header">
+                        <h3 class="card-title">Increased Offset</h3>
+                        <p class="card-desc">High travel distance for prominent entrance animations.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. CSS CUSTOM PROPERTIES -->
+        <section class="demo-section">
+            <h2 class="section-title">CSS Custom Properties <span class="tag">Advanced Styling</span></h2>
+            <p class="section-desc">Fine-tune the reveal with <span class="inline-code">--ls-scale</span> and
+                <span class="inline-code">--ls-easing</span> (both paths),
+                <span class="inline-code">--ls-duration</span> and <span class="inline-code">--ls-delay</span>
+                (Observer fallback), or <span class="inline-code">--ls-range-start</span> /
+                <span class="inline-code">--ls-range-end</span> (native scroll timeline).
+            </p>
+
+            <div class="grid-2">
+                <div class="card" data-ls="fade-up" style="--ls-duration: 1.2s; --ls-delay: 300ms;">
+                    <div class="card-header">
+                        <h3 class="card-title">Custom Duration & Delay <span class="chip">fallback only</span></h3>
+                        <p class="card-desc">Slowed down with <span class="inline-code">--ls-duration: 1.2s</span> and
+                            <span class="inline-code">--ls-delay: 300ms</span>. On native scroll timelines, progress
+                            follows the scroll position instead of the clock.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="fade-up" style="--ls-range-start: entry 0%; --ls-range-end: entry 100%;">
+                    <div class="card-header">
+                        <h3 class="card-title">Custom Scroll Range <span class="chip">native only</span></h3>
+                        <p class="card-desc">The reveal completes exactly as the element finishes entering the
+                            viewport, set with <span class="inline-code">--ls-range-start</span> and
+                            <span class="inline-code">--ls-range-end</span>.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="zoom-in" style="--ls-scale: 0.4;">
+                    <div class="card-header">
+                        <h3 class="card-title">Custom Zoom Scale</h3>
+                        <p class="card-desc">Initial scale overridden using <span class="inline-code">--ls-scale:
+                                0.4</span>.</p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="fade-right" style="--ls-easing: cubic-bezier(0.68, -0.55, 0.265, 1.55);">
+                    <div class="card-header">
+                        <h3 class="card-title">Custom Easing Curve</h3>
+                        <p class="card-desc">Applies an elastic curve via <span class="inline-code">--ls-easing</span>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. REPEAT CONTROLS -->
+        <section class="demo-section">
+            <h2 class="section-title">Repeat Mode Controls <span class="tag">Once Parameter</span></h2>
+            <p class="section-desc">Native CSS scroll timelines bind animations directly to scroll progress, so they
+                always play in reverse when you scroll back. The <span class="inline-code">data-ls-once</span> option
+                only controls repeat behavior in Observer fallback mode.</p>
+
+            <div class="grid-2">
+                <div class="card" data-ls="fade-up" data-ls-once="true">
+                    <div class="card-header">
+                        <h3 class="card-title">Once: True (Default)</h3>
+                        <p class="card-desc">Animates once upon initial entry and holds the final state (Observer
+                            fallback).</p>
+                    </div>
+                </div>
+
+                <div class="card" data-ls="fade-up" data-ls-once="false">
+                    <div class="card-header">
+                        <h3 class="card-title">Once: False (Repeatable)</h3>
+                        <p class="card-desc">Resets upon exit and re-triggers on subsequent scrolls (Observer
+                            fallback).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. DYNAMIC JS API -->
+        <section class="demo-section">
+            <h2 class="section-title">Dynamic DOM API <span class="tag">window.LeisureScroll.refresh()</span></h2>
+            <p class="section-desc">Inject content at runtime and register new elements with LeisureScroll.</p>
+
+            <button type="button" class="btn" id="addCardsBtn">+ Inject Dynamic Element</button>
+
+            <div id="dynamic-container"></div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-brand">
+                <span>Leisure<span class="brand-tag">Scroll</span></span>
+            </div>
+
+            <p class="footer-text">
+                Crafted for ultra-fast, smooth scroll animations powered by pure browser capabilities and zero runtime
+                bloat.
+            </p>
+
+            <div class="footer-features">
+                <div class="footer-feature-item">⚡ 0 KB JS on supporting browsers</div>
+                <div class="footer-feature-item">🎨 Native CSS Scroll-Timelines</div>
+                <div class="footer-feature-item">🔄 Automatic Fallback Engine</div>
+            </div>
+
+            <nav class="footer-links" aria-label="Footer Navigation">
+                <a href="#hero">Back to Top</a>
+                <a href="https://github.com/jovansitaric/leisure-scroll" target="_blank" rel="noopener">GitHub
+                    Repository</a>
+                <a href="https://jovansitaric.github.io/" target="_blank" rel="noopener">My Portfolio
+                </a>
+                <a href="leisurescroll.css" download>Download CSS</a>
+                <a href="leisurescroll.js" download>Download JS</a>
+            </nav>
+
+            <div class="footer-copyright">
+                © <span id="year"></span> Leisure Ecosystem • Open-Source & Built for Speed
+            </div>
+        </div>
+    </footer>
+
+    <!-- SHOWCASE INTERACTIVE LOGIC -->
+    <script>
+        // Copy Code Helper Function
+        function copyCode(btn) {
+            const card = btn.closest('.card');
+            const attrLs = card.getAttribute('data-ls');
+            const styleAttr = card.getAttribute('style');
+            const onceAttr = card.getAttribute('data-ls-once');
+
+            let codeSnippet = `<div data-ls="${attrLs}"`;
+            if (styleAttr) codeSnippet += ` style="${styleAttr}"`;
+            if (onceAttr) codeSnippet += ` data-ls-once="${onceAttr}"`;
+            codeSnippet += `>...</div>`;
+
+            navigator.clipboard.writeText(codeSnippet).then(() => {
+                btn.setAttribute('title', 'Copied!');
+                btn.innerHTML = '✅ Copied!';
+                setTimeout(() => {
+                    btn.setAttribute('title', 'Copy code');
+                    btn.innerHTML = '📋 Copy';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Dynamically populate current year in the footer
+            const yearEl = document.getElementById('year');
+            if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+            // 2. Header Scroll Effect (Transparent -> Soft frosted glass on scroll)
+            const siteHeader = document.getElementById('siteHeader');
+            const handleHeaderScroll = () => {
+                if (window.scrollY > 20) {
+                    siteHeader.classList.add('is-scrolled');
+                } else {
+                    siteHeader.classList.remove('is-scrolled');
+                }
+            };
+            window.addEventListener('scroll', handleHeaderScroll, { passive: true });
+            handleHeaderScroll(); // Check initial state in case page is refreshed midway
+
+            // 3. Engine Detection
+            const engineLabel = document.getElementById('engineLabel');
+            const supportsNative = CSS.supports && CSS.supports('animation-timeline', 'view()');
+            const usingEngine = 'Using Engine: '
+            if (engineLabel) {
+                engineLabel.textContent = supportsNative
+                    ? usingEngine + 'Native CSS Scroll-Timeline (0 KB JS)'
+                    : usingEngine + 'IntersectionObserver Fallback';
+            }
+
+            // 4. Dark/Light Theme Toggle
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
+            const themeIcon = document.getElementById('themeIcon');
+            const themeLabel = document.getElementById('themeLabel');
+
+            const updateThemeUI = (theme) => {
+                document.documentElement.setAttribute('data-theme', theme);
+                if (themeIcon) themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+                if (themeLabel) themeLabel.textContent = theme === 'dark' ? 'Light' : 'Dark';
+            };
+
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            updateThemeUI(currentTheme);
+
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', () => {
+                    const activeTheme = document.documentElement.getAttribute('data-theme');
+                    const nextTheme = activeTheme === 'dark' ? 'light' : 'dark';
+                    try { localStorage.setItem('ls_theme', nextTheme); } catch (e) { }
+                    updateThemeUI(nextTheme);
+                });
+            }
+
+            // 5. Automatically inject HTML codeblock snippets into all demo cards
+            document.querySelectorAll('.card').forEach(card => {
+                if (card.querySelector('.snippet')) return;
+
+                const attrLs = card.getAttribute('data-ls');
+                const styleAttr = card.getAttribute('style');
+                const onceAttr = card.getAttribute('data-ls-once');
+
+                let htmlCode = `<span class="p">&lt;</span><span class="t">div</span> <span class="a">data-ls</span><span class="p">=</span>\n  <span class="v">"${attrLs}"</span>`;
+                if (styleAttr) {
+                    htmlCode += ` <span class="a">style</span><span class="p">=</span>\n  <span class="v">"${styleAttr}"</span>`;
+                }
+                if (onceAttr) {
+                    htmlCode += ` <span class="a">data-ls-once</span><span class="p">=</span>\n  <span class="v">"${onceAttr}"</span>`;
+                }
+                htmlCode += `<span class="p">&gt;</span>...<span class="p">&lt;/</span><span class="t">div</span><span class="p">&gt;`;
+
+                const snippetEl = document.createElement('div');
+                snippetEl.className = 'snippet';
+                snippetEl.innerHTML = `
+                    <div class="code-header-bar">
+                        <span class="code-label">HTML Implementation</span>
+                        <button type="button" class="copy-btn" title="Copy code" onclick="copyCode(this)">📋 Copy</button>
+                    </div>
+                    <div class="code-block"><code>${htmlCode}</code></div>
+                `;
+                card.appendChild(snippetEl);
+            });
+
+            // 6. Dynamic Element Injection
+            const addCardsBtn = document.getElementById('addCardsBtn');
+            const dynamicContainer = document.getElementById('dynamic-container');
+            let count = 1;
+
+            if (addCardsBtn && dynamicContainer) {
+                addCardsBtn.addEventListener('click', () => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    const animationType = count % 2 === 0 ? 'zoom-in' : 'fade-up';
+                    card.setAttribute('data-ls', animationType);
+
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <h3 class="card-title">Dynamic Item #${count}</h3>
+                            <p class="card-desc">Injected at runtime via JavaScript.</p>
+                        </div>
+                        <div class="snippet">
+                            <div class="code-header-bar">
+                                <span class="code-label">HTML Implementation</span>
+                                <button type="button" class="copy-btn" title="Copy code" onclick="copyCode(this)">📋 Copy</button>
+                            </div>
+                            <div class="code-block"><code><span class="p">&lt;</span><span class="t">div</span> <span class="a">data-ls</span><span class="p">=</span>\n  <span class="v">"${animationType}"</span><span class="p">&gt;</span>...<span class="p">&lt;/</span><span class="t">div</span><span class="p">&gt;</span></code></div>
+                        </div>
+                    `;
+
+                    dynamicContainer.appendChild(card);
+                    count++;
+
+                    if (window.LeisureScroll && window.LeisureScroll.refresh) {
+                        window.LeisureScroll.refresh(dynamicContainer);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
