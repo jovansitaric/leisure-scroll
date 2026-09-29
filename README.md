@@ -16,9 +16,9 @@ Path selection is handled using `@supports (animation-timeline: view())` in CSS 
 This is a conscious design choice, not a bug:
 
 - **Native path (Chrome/Edge):** The animation is directly tied to the scroll position (`view()` timeline). Scrolling back up over an element plays the animation in reverse ("mirroring" effect). Disabling this would require JS intervention, sacrificing the 0 KB JS runtime advantage.
-- **Fallback path (Firefox, Safari, older browsers):** Behaves like traditional AOS elements animate **once** when entering the viewport for the first time and remain visible afterward (`once: true` by default). If you want elements to mirror on the fallback path as well (animating every time they are scrolled past), set `data-ls-once="false"` on the element.
+- **Fallback path (Firefox, Safari, older browsers):** Now mirrors this by default (`once: false`) — elements reset and re-animate every time they're scrolled past, matching the native path's behavior. Set `data-ls-once="true"` on an element if you want the old AOS-style single-shot reveal instead (animate once, then stay visible).
 
-**Conclusion:** A site will feel slightly more dynamic on Chrome (with native mirroring) and behave like a classic single-pass reveal on Firefox/Safari. This tradeoff preserves zero-overhead performance on modern browsers.
+**Conclusion:** Both paths now behave the same way by default — elements re-animate on repeated scroll past. Use `data-ls-once="true"` per element on the fallback path where a one-time reveal is preferred (e.g. above-the-fold hero content you don't want replaying).
 
 ## Usage
 
@@ -48,17 +48,24 @@ There is no JS initialization; everything works automatically as soon as the scr
 | `--ls-easing`   | `cubic-bezier(0.25, 1, 0.5, 1)` | easing curve                                            |
 | `--ls-distance` | `40px`                          | how far the element travels for fade-up/down/left/right |
 | `--ls-scale`    | `0.85`                          | starting scale for zoom-in/out                          |
+| `--ls-blur`     | `10px`                          | starting blur for the `*-blur` variants                 |
+| `--ls-range-start` | `entry 15%`                  | native path only — when the reveal starts along the scroll timeline |
+| `--ls-range-end`   | `entry 75%`                  | native path only — when the reveal finishes along the scroll timeline |
 
-Set them globally with `:root { --ls-duration: 1s; }`, or inline per element with `style="--ls-duration: 300ms"`. This works identically on both paths (native and fallback), with no JS involved.
+Set them globally with `:root { --ls-duration: 1s; }`, or inline per element with `style="--ls-duration: 300ms"`. `--ls-duration`/`--ls-delay` only affect the fallback path (there's no clock on a scroll timeline); `--ls-range-start`/`--ls-range-end` only affect the native path. Everything else works identically on both paths, with no JS involved.
+
+The default range (`entry 15%` → `entry 75%`) was picked over the library's initial `entry 10% / cover 35%` mix because mixing `entry` and `cover` phases as start/end could stretch the reveal across a much larger, unpredictable scroll distance depending on element height — it tended to either finish before it was noticeable, or drag on well past when the element was already fully visible. Using `entry` alone for both ends keeps the whole reveal contained to the element's entrance, and starting at 15%/ending at 75% (instead of 0%/100%) avoids both the "barely there" flicker of triggering right at the edge and the abrupt snap of completing exactly as it's already fully on screen.
 
 ### Available animations (`data-ls="..."`)
 
-`fade`, `fade-up`, `fade-down`, `fade-left`, `fade-right`, `fade-up-right`, `fade-up-left`, `fade-down-right`, `fade-down-left`, `zoom-in`, `zoom-out`
+`fade`, `fade-up`, `fade-down`, `fade-left`, `fade-right`, `fade-up-right`, `fade-up-left`, `fade-down-right`, `fade-down-left`, `zoom-in`, `zoom-out`, `fade-blur`, `fade-up-blur`, `zoom-in-blur`
+
+The `*-blur` variants combine the same opacity/transform reveal with a `filter: blur()` that resolves to `blur(0)`. Note `filter` is not as cheap as `opacity`/`transform` — it's still compositor-friendly on its own, but avoid combining it with heavy box-shadows or backdrop-filters on the same element in large numbers. Only three blur variants ship out of the box (as examples); adding more follows the same pattern — pick a base animation, add `filter: blur(var(--ls-blur))` to its "off" state and `filter: blur(0)` to its "on" state, in both the native `@keyframes` and the fallback `[data-ls="..."]`/`.ls-animated` rules.
 
 ### `data-ls-once`
 
-- (omitted or `"true"`): the default. Animates once on the fallback path; on the native path it still mirrors (see the note above).
-- `"false"`: on the fallback path, it also animates in reverse; no effect on the native path (which always mirrors).
+- (omitted or `"false"`): the default. Animates every time the element scrolls in and out of view, on both paths (the fallback path re-triggers via `IntersectionObserver`; the native path mirrors automatically).
+- `"true"`: fallback path only — animates once on first entry and stays visible after that (classic AOS behavior). Has no effect on the native path, which always mirrors.
 
 ### `window.LeisureScroll.refresh(root?)`
 

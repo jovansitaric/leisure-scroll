@@ -17,7 +17,10 @@
   var observer;
 
   function activate(el) {
-    var once = el.dataset.lsOnce !== 'false';
+    // Default is now repeatable (once=false), matching the native path's
+    // built-in mirror behavior. Set data-ls-once="true" to opt an element
+    // into the old single-shot behavior.
+    var once = el.dataset.lsOnce === 'true';
     el.classList.add('ls-animated');
     if (once) {
       observer.unobserve(el);
@@ -43,7 +46,7 @@
     observer = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         var el = entry.target;
-        var once = el.dataset.lsOnce !== 'false';
+        var once = el.dataset.lsOnce === 'true';
         if (entry.isIntersecting) {
           activate(el);
         } else if (!once) {

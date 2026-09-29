@@ -8,6 +8,14 @@
   --ls-easing: cubic-bezier(0.25, 1, 0.5, 1);
   --ls-distance: 40px;
   --ls-scale: 0.85;
+  --ls-blur: 10px;
+  /* Native scroll-timeline trigger window: starts once the element is 15%
+     into the entry phase (skips the first sliver, which reads as "too
+     early") and finishes at 75% of entry (element is still visibly moving
+     as it becomes fully visible, instead of snapping shut in the first
+     third of its entrance like the old "entry 10% cover 35%" range did). */
+  --ls-range-start: entry 15%;
+  --ls-range-end: entry 75%;
 }
 
 /* Base styles for all animated elements */
@@ -28,9 +36,7 @@
 @supports (animation-timeline: view()) {
   [data-ls] {
     animation-timeline: view();
-    /* Starts 10% into the entry phase, finishes 35% into the cover phase —
-       i.e. the reveal is done well before the element reaches screen center. */
-    animation-range: entry 10% cover 35%;
+    animation-range: var(--ls-range-start) var(--ls-range-end);
   }
 
   [data-ls="fade"]            { animation-name: ls-fade; }
@@ -44,6 +50,9 @@
   [data-ls="fade-down-left"]  { animation-name: ls-fade-down-left; }
   [data-ls="zoom-in"]         { animation-name: ls-zoom-in; }
   [data-ls="zoom-out"]        { animation-name: ls-zoom-out; }
+  [data-ls="fade-blur"]       { animation-name: ls-fade-blur; }
+  [data-ls="fade-up-blur"]    { animation-name: ls-fade-up-blur; }
+  [data-ls="zoom-in-blur"]    { animation-name: ls-zoom-in-blur; }
 
   /* NOTE: scroll-driven animations have no native "once" concept — progress
      is tied directly to scroll position, so elements mirror back out when
@@ -58,7 +67,7 @@
 @supports not (animation-timeline: view()) {
   [data-ls] {
     opacity: 0;
-    transition-property: transform, opacity;
+    transition-property: transform, opacity, filter;
     transition-duration: var(--ls-duration);
     transition-delay: var(--ls-delay);
     transition-timing-function: var(--ls-easing);
@@ -74,10 +83,14 @@
   [data-ls="fade-down-left"]  { transform: translate(var(--ls-distance), calc(var(--ls-distance) * -1)); }
   [data-ls="zoom-in"]         { transform: scale(var(--ls-scale)); }
   [data-ls="zoom-out"]        { transform: scale(calc(2 - var(--ls-scale))); }
+  [data-ls="fade-blur"]       { filter: blur(var(--ls-blur)); }
+  [data-ls="fade-up-blur"]    { transform: translateY(var(--ls-distance)); filter: blur(var(--ls-blur)); }
+  [data-ls="zoom-in-blur"]    { transform: scale(var(--ls-scale)); filter: blur(var(--ls-blur)); }
 
   [data-ls].ls-animated {
     opacity: 1;
     transform: translate(0, 0) scale(1);
+    filter: blur(0);
   }
 }
 
@@ -128,6 +141,18 @@
   from { opacity: 0; transform: scale(calc(2 - var(--ls-scale))); }
   to   { opacity: 1; transform: scale(1); }
 }
+@keyframes ls-fade-blur {
+  from { opacity: 0; filter: blur(var(--ls-blur)); }
+  to   { opacity: 1; filter: blur(0); }
+}
+@keyframes ls-fade-up-blur {
+  from { opacity: 0; transform: translateY(var(--ls-distance)); filter: blur(var(--ls-blur)); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes ls-zoom-in-blur {
+  from { opacity: 0; transform: scale(var(--ls-scale)); filter: blur(var(--ls-blur)); }
+  to   { opacity: 1; transform: scale(1); filter: blur(0); }
+}
 
 /* Respect OS-level reduced motion in BOTH paths. */
 @media (prefers-reduced-motion: reduce) {
@@ -136,5 +161,6 @@
     transition: none !important;
     transform: none !important;
     opacity: 1 !important;
+    filter: none !important;
   }
 }
