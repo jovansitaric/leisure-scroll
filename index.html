@@ -7,7 +7,11 @@
     <meta name="description"
         content="LeisureScroll: a hybrid scroll-reveal library. Native CSS scroll-driven animations with an IntersectionObserver fallback.">
     <title>LeisureScroll | Interactive Showcase & Documentation</title>
-
+    <link rel="icon" type="image/png" href="./images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="./images/favicon.svg" />
+    <link rel="shortcut icon" href="./images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./images/apple-touch-icon.png" />
+    <link rel="manifest" href="./site.webmanifest" />
     <!-- Apply the saved/system theme before first paint (prevents a light-mode flash for dark users) -->
     <script>
         (function () {
@@ -885,7 +889,8 @@
                 scroll in and out of view (native mirrors automatically; the fallback re-triggers via
                 <span class="inline-code">IntersectionObserver</span>). Set <span
                     class="inline-code">data-ls-once="true"</span> for the classic single-shot AOS behavior; it only
-                affects the Observer fallback.</p>
+                affects the Observer fallback.
+            </p>
 
             <div class="grid-2">
                 <div class="card" data-ls="fade-up" data-ls-once="false">
