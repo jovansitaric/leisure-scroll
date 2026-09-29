@@ -1,6 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" id="Layer_1" x="0px" y="0px" width="121.976px" height="121.977px" viewBox="0 0 121.976 121.977" enable-background="new 0 0 121.976 121.977" xml:space="preserve"><metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:creator>RealFaviconGenerator</dc:creator><dc:source>https://realfavicongenerator.net</dc:source></rdf:Description></rdf:RDF></metadata><g transform="translate(520,40) scale(1.2)">
-	<path fill="#1C9E76" d="M-433.333,17.49c0-28.588,22.235-50.824,50.824-50.824h44.47c3.508,0,6.353,2.844,6.353,6.353V17.49
-		c0,28.588-22.235,50.824-50.823,50.824h-44.471c-3.508,0-6.353-2.844-6.353-6.353V17.49z"></path>
-	<path fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" d="M-395.216-7.922v42.882
-		h30.177"></path>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" id="Layer_1" x="0px" y="0px" width="121.977px" height="121.977px" viewBox="0 0 121.977 121.977" enable-background="new 0 0 121.977 121.977" xml:space="preserve"><metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:creator>RealFaviconGenerator</dc:creator><dc:source>https://realfavicongenerator.net</dc:source></rdf:Description></rdf:RDF></metadata><path fill="#1C9E76" d="M76.165,0.052c0.023-0.017,0.045-0.036,0.068-0.053H60.99c-0.729,0-1.449,0.029-2.171,0.053h-0.337V0.06
+	C25.393,1.326,0.001,27.525,0.001,60.989v53.364c0,4.211,3.414,7.624,7.623,7.624H60.99c34.306,0,60.987-26.684,60.987-60.988
+	v-6.323V43.724V0.052H76.165z"></path><g>
+	<path fill="#FFFFFF" d="M54.186,121.977H7.703c-4.253,0-7.702-3.449-7.702-7.702V48.22c0-4.254,3.449-7.703,7.702-7.703
+		c4.253,0,7.702,3.449,7.702,7.703v58.354h38.781c4.253,0,7.702,3.447,7.702,7.701C61.888,118.528,58.44,121.977,54.186,121.977z"></path>
+</g><g>
+	<path fill="none" stroke="#FFFFFF" stroke-width="6" d="M63.99,22.595L63.99,22.595c9.127,0,16.526,7.399,16.526,16.524v28.332
+		c0,9.125-7.399,16.525-16.526,16.525l0,0c-9.13,0-16.529-7.4-16.529-16.525V39.119C47.461,29.994,54.861,22.595,63.99,22.595z"></path>
+	<circle fill="#FFFFFF" cx="63.99" cy="43.843" r="6.139"></circle>
 </g></svg>
